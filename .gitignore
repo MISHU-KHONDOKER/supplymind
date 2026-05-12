@@ -1,0 +1,324 @@
+# ==============================================================================
+# Secrets and Environment
+# ==============================================================================
+# Never commit anything containing API keys, passwords, or credentials.
+
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.pem
+*.key
+secrets/
+credentials.json
+
+# ==============================================================================
+# Python
+# ==============================================================================
+# Build artifacts, caches, and virtual environments — all regeneratable.
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Profiling
+.prof
+*.lprof
+
+# ==============================================================================
+# Node.js / Frontend
+# ==============================================================================
+# Dependencies and build outputs for the React frontend.
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Package manager files
+.npm
+.yarn-integrity
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Optional npm cache directory
+.npm
+
+# Vite
+*.local
+
+# Coverage
+coverage/
+.nyc_output/
+
+# ==============================================================================
+# AI / ML
+# ==============================================================================
+# Model weights, training artifacts, datasets — too large or domain-sensitive
+# for Git. Use external storage (Hugging Face Hub, S3, MLflow) instead.
+
+# Model weights and checkpoints
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.onnx
+*.tflite
+*.pkl
+*.pickle
+*.joblib
+models/
+checkpoints/
+weights/
+
+# Hugging Face
+.cache/huggingface/
+huggingface_cache/
+
+# Vector stores
+chroma_db/
+chromadb/
+*.chroma
+faiss_index/
+vector_store/
+
+# Training artifacts
+runs/
+lightning_logs/
+mlruns/
+wandb/
+tensorboard/
+.tensorboard/
+events.out.tfevents.*
+
+# Datasets (raw and processed)
+data/raw/
+data/processed/
+data/external/
+*.csv.gz
+*.parquet
+*.arrow
+*.feather
+
+# Notebooks output
+*.nbconvert.ipynb
+
+# Evaluation results
+benchmarks/results_*.json
+eval_outputs/
+
+# ==============================================================================
+# IDE and Editor
+# ==============================================================================
+# Personal editor configuration — varies per developer, doesn't belong in repo.
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ==============================================================================
+# Operating System
+# ==============================================================================
+# Files created by macOS, Windows, and Linux file managers.
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==============================================================================
+# Temporary Files
+# ==============================================================================
+
+*.bak
+*.tmp
+*.temp
+*.swp
+*.orig
+.history/
+.vscode-test/
+
+# ==============================================================================
+# Docker
+# ==============================================================================
+# Local Docker state — containers, volumes, build cache.
+
+.docker/
+docker-volumes/
+*.dockerignore.local
+
+# ==============================================================================
+# Logs and Runtime State
+# ==============================================================================
+
+logs/
+*.log
+*.log.*
+log_*.txt
+
+# Process IDs
+*.pid
+*.seed
+*.pid.lock
+
+# ==============================================================================
+# SupplyMind Project-Specific
+# ==============================================================================
+# Local development artifacts unique to this project.
+
+# Grafana persistent data
+infra/grafana/data/
+infra/grafana/plugins/
+
+# Prometheus persistent data
+infra/prometheus/data/
+
+# Local benchmark and evaluation outputs
+benchmarks/results_*.json
+eval_outputs/
+.benchmark_cache/
+
+# Generated synthetic data (regeneratable from seed)
+backend/app/data/synthetic/generated/
+
+# Local override files
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Python-dotenv generated files
+.env.generated
