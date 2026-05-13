@@ -1,0 +1,198 @@
+# ==============================================================================
+# Docker Build Context Exclusions
+# ==============================================================================
+# Anything matched here is excluded from the Docker build context — making
+# builds faster, images smaller, and preventing accidental data leaks.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Version Control
+# ------------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ------------------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------------------
+
+# Virtual environments — huge and machine-specific
+venv/
+env/
+.venv/
+ENV/
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution and packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage_html/
+.tox/
+.nox/
+.hypothesis/
+
+# Type checking caches
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Linting caches
+.ruff_cache/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Profiling
+*.prof
+*.lprof
+
+# ------------------------------------------------------------------------------
+# AI / ML Artifacts
+# ------------------------------------------------------------------------------
+
+# Local model weights (downloaded at runtime, not at build time)
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.onnx
+models/
+checkpoints/
+weights/
+
+# Hugging Face cache
+.cache/huggingface/
+huggingface_cache/
+
+# Vector stores — runtime data, regenerated from source documents
+data/chroma/
+chroma_db/
+chromadb/
+*.chroma
+vector_store/
+
+# Training and experiment artifacts
+runs/
+mlruns/
+wandb/
+tensorboard/
+.tensorboard/
+
+# Evaluation and benchmark outputs
+eval_outputs/
+benchmarks/results_*.json
+.benchmark_cache/
+
+# Generated synthetic data
+data/synthetic/generated/
+
+# ------------------------------------------------------------------------------
+# Secrets and Local Configuration
+# ------------------------------------------------------------------------------
+
+# Environment files — secrets must never enter the image
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Local Docker overrides
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ------------------------------------------------------------------------------
+# Documentation and Markdown
+# ------------------------------------------------------------------------------
+# Documentation isn't needed inside the runtime image. Excluding it keeps
+# images smaller. The README stays in the repo, not in the deployed container.
+
+README.md
+README.*
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+docs/
+*.md
+
+# ------------------------------------------------------------------------------
+# IDE and Editor
+# ------------------------------------------------------------------------------
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ------------------------------------------------------------------------------
+# Operating System
+# ------------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ------------------------------------------------------------------------------
+# Build and Deployment Artifacts
+# ------------------------------------------------------------------------------
+
+# Docker files — not needed inside the image being built
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# CI/CD configuration
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Local logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+.history/
