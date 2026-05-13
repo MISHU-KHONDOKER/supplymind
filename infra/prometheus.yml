@@ -1,0 +1,141 @@
+# ==============================================================================
+# SupplyMind — Prometheus Configuration
+# ==============================================================================
+# Scrapes metrics from all SupplyMind services.
+# Reloaded on file change (lifecycle API enabled in docker-compose).
+#
+# Reload manually: curl -X POST http://localhost:9090/-/reload
+# Reference: https://prometheus.io/docs/prometheus/latest/configuration/configuration/
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Global Configuration
+# ------------------------------------------------------------------------------
+# Defaults applied to all scrape jobs unless overridden.
+
+global:
+  # How often to scrape targets (default: 1m, we use 15s for dev visibility)
+  scrape_interval: 15s
+
+  # How long to wait before a scrape times out
+  scrape_timeout: 10s
+
+  # How often to evaluate alerting/recording rules
+  evaluation_interval: 15s
+
+  # External labels applied to all metrics — useful for distinguishing
+  # environments when multiple Prometheus instances feed a single store
+  external_labels:
+    cluster: supplymind-local
+    environment: development
+
+# ------------------------------------------------------------------------------
+# Alerting Configuration (placeholder)
+# ------------------------------------------------------------------------------
+# Uncomment when adding Alertmanager later.
+
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#             - alertmanager:9093
+
+# ------------------------------------------------------------------------------
+# Rule Files (placeholder)
+# ------------------------------------------------------------------------------
+# Recording rules pre-compute expensive queries; alerting rules define alerts.
+
+# rule_files:
+#   - "rules/recording.yml"
+#   - "rules/alerts.yml"
+
+# ------------------------------------------------------------------------------
+# Scrape Configurations
+# ------------------------------------------------------------------------------
+
+scrape_configs:
+
+  # ----------------------------------------------------------------------------
+  # Prometheus Self-Monitoring
+  # ----------------------------------------------------------------------------
+  # Prometheus exposes its own metrics — useful for monitoring the monitor.
+
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+        labels:
+          service: prometheus
+          component: monitoring
+
+# ----------------------------------------------------------------------------
+  # SupplyMind Backend — Application Metrics
+  # ----------------------------------------------------------------------------
+  # Scrapes metrics from the FastAPI backend's /metrics endpoint.
+  # Includes per-agent metrics, LLM call counts, token usage, latency histograms.
+
+  - job_name: supplymind-backend
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+    static_configs:
+      - targets:
+          - backend:8000
+        labels:
+          service: supplymind-backend
+          component: api
+          tier: application
+
+    # Drop noisy or sensitive metrics before they enter storage
+    metric_relabel_configs:
+      # Drop Python GC internal metrics (high cardinality, low value)
+      - source_labels: [__name__]
+        regex: 'python_gc_.*'
+        action: drop
+
+      # Drop process_open_fds — varies per platform, rarely useful
+      - source_labels: [__name__]
+        regex: 'process_open_fds'
+        action: drop
+
+  # ----------------------------------------------------------------------------
+  # Grafana — Application Metrics
+  # ----------------------------------------------------------------------------
+  # Grafana exposes its own operational metrics.
+
+  - job_name: grafana
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+    static_configs:
+      - targets:
+          - grafana:3000
+        labels:
+          service: grafana
+          component: visualization
+
+  # ----------------------------------------------------------------------------
+  # Future Services (commented placeholders)
+  # ----------------------------------------------------------------------------
+  # Uncomment as additional services are added to the stack.
+
+  # - job_name: supplymind-anomaly-worker
+  #   metrics_path: /metrics
+  #   scrape_interval: 15s
+  #   static_configs:
+  #     - targets:
+  #         - anomaly-worker:8001
+  #       labels:
+  #         service: supplymind-anomaly-worker
+  #         component: ml
+  #         tier: application
+
+  # - job_name: node-exporter
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets:
+  #         - node-exporter:9100
+  #       labels:
+  #         service: node-exporter
+  #         component: infrastructure
