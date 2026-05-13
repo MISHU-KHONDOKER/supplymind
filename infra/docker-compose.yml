@@ -1,0 +1,291 @@
+# ==============================================================================
+# SupplyMind — Docker Compose Configuration
+# ==============================================================================
+# Orchestrates the full stack for local development and demos.
+# Services: backend, frontend, prometheus, grafana
+#
+# Usage:
+#   make run    — start everything
+#   make stop   — stop everything
+#   make logs   — view logs
+# ==============================================================================
+
+name: supplymind
+
+# ------------------------------------------------------------------------------
+# Networks
+# ------------------------------------------------------------------------------
+# A single internal network connects all services. Services reach each other
+# by container name (e.g. backend can call http://prometheus:9090).
+
+networks:
+  supplymind-net:
+    driver: bridge
+    name: supplymind-net
+
+# ------------------------------------------------------------------------------
+# Volumes
+# ------------------------------------------------------------------------------
+# Named volumes persist data across container restarts.
+# Delete with: docker compose down -v
+
+volumes:
+  prometheus-data:
+    name: supplymind-prometheus-data
+  grafana-data:
+    name: supplymind-grafana-data
+  chroma-data:
+    name: supplymind-chroma-data
+  hf-cache:
+    name: supplymind-hf-cache
+
+
+# ------------------------------------------------------------------------------
+# Services
+# ------------------------------------------------------------------------------
+
+services:
+
+  # ----------------------------------------------------------------------------
+  # Backend — FastAPI + LangGraph multi-agent pipeline
+  # ----------------------------------------------------------------------------
+  backend:
+    container_name: supplymind-backend
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: supplymind-backend:latest
+
+    # Expose API and metrics ports to the host
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+    # Environment variables — read from .env file at project root
+    env_file:
+      - ../.env
+
+    # Override specific variables for container context
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - API_HOST=0.0.0.0
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+
+    # Mount volumes for persistence and development
+    volumes:
+      # Persist vector store data across restarts
+      - chroma-data:/app/data/chroma
+      # Persist Hugging Face model cache across restarts
+      - hf-cache:/home/supplymind/.cache/huggingface
+      # Mount source code for development (comment out for production)
+      - ../backend/app:/app/app:ro
+
+    # Connect to the internal network
+    networks:
+      - supplymind-net
+
+    # Restart policy — restart on crashes but not on manual stop
+    restart: unless-stopped
+
+    # Resource limits (uncomment in production with real values)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 4G
+    #     reservations:
+    #       cpus: '1.0'
+    #       memory: 2G
+
+    # Health check — Docker uses this to determine container readiness
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+    # Logging configuration — use json-file driver with rotation
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=backend,project=supplymind"
+
+
+
+# ----------------------------------------------------------------------------
+  # Prometheus — Metrics Collection and Storage
+  # ----------------------------------------------------------------------------
+  prometheus:
+    container_name: supplymind-prometheus
+    image: prom/prometheus:v2.55.0
+
+    # Expose Prometheus UI on host
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+    # Mount the Prometheus configuration and persistent storage
+    volumes:
+      # Configuration file (read-only)
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Persistent metric storage
+      - prometheus-data:/prometheus
+
+    # Command-line flags for the Prometheus binary
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+    networks:
+      - supplymind-net
+
+    restart: unless-stopped
+
+    # Wait for backend before starting (backend exposes /metrics endpoint)
+    depends_on:
+      backend:
+        condition: service_started
+
+    # Health check — Prometheus exposes /-/healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        labels: "service=prometheus,project=supplymind"
+
+# ----------------------------------------------------------------------------
+  # Grafana — Metric Visualization and Dashboards
+  # ----------------------------------------------------------------------------
+  grafana:
+    container_name: supplymind-grafana
+    image: grafana/grafana:11.3.0
+
+    # Expose Grafana UI on host (default 3001 to avoid conflict with frontend on 3000)
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+
+    # Environment configuration — admin credentials, plugins, theme
+    environment:
+      # Admin credentials (override in production via .env)
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+
+      # Disable anonymous access — require login
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+
+      # Disable user signups — admin creates users explicitly
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+      # Set default theme
+      - GF_USERS_DEFAULT_THEME=dark
+
+      # Auto-install plugins on startup
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+
+      # Disable analytics reporting
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+      # Set logger format
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=info
+
+      # Server config
+      - GF_SERVER_ROOT_URL=http://localhost:${GRAFANA_PORT:-3001}
+
+      # Provisioning paths (will be mounted below)
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+
+    # Mount persistent storage and provisioning files
+    volumes:
+      # Persistent Grafana database (users, dashboards, settings)
+      - grafana-data:/var/lib/grafana
+      # Auto-provisioning configs for datasources and dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Dashboard JSON files
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    networks:
+      - supplymind-net
+
+    restart: unless-stopped
+
+    # Start after Prometheus (Grafana queries Prometheus as a datasource)
+    depends_on:
+      prometheus:
+        condition: service_started
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        labels: "service=grafana,project=supplymind"
+
+# ----------------------------------------------------------------------------
+  # Frontend — React Dashboard
+  # ----------------------------------------------------------------------------
+  # Note: The frontend is a placeholder until we build the React app.
+  # Uncomment and configure when ready.
+
+  # frontend:
+  #   container_name: supplymind-frontend
+  #   build:
+  #     context: ../frontend
+  #     dockerfile: Dockerfile
+  #   image: supplymind-frontend:latest
+  #
+  #   ports:
+  #     - "${FRONTEND_PORT:-3000}:80"
+  #
+  #   environment:
+  #     - VITE_API_URL=http://localhost:${API_PORT:-8000}
+  #     - VITE_WS_URL=ws://localhost:${API_PORT:-8000}
+  #
+  #   networks:
+  #     - supplymind-net
+  #
+  #   restart: unless-stopped
+  #
+  #   depends_on:
+  #     backend:
+  #       condition: service_started
+  #
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 20s
+  #
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "50m"
+  #       max-file: "3"
+  #       labels: "service=frontend,project=supplymind"
